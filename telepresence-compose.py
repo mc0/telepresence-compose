@@ -70,7 +70,7 @@ def volume_dict_pairs_to_str(args, keyval_arr):
         if val.startswith('~'):
             path = PosixPath(str(val)).expanduser()
             return 'source=' + str(os.path.normpath(path.absolute()))
-        if val.startswith('/') == False:
+        if val.startswith('.'):
             dirname = os.path.dirname(args.composefile)
             path = PosixPath(dirname, str(val))
             return 'source=' + str(os.path.normpath(path.absolute()))

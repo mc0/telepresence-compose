@@ -82,26 +82,28 @@ def get_volume_dict_pairs_to_str(args):
 
 def volume_to_str_lambda(args, volume):
     if isinstance(volume, str):
-        return '-v ' + volume
+        return ['-v ', volume]
     if isinstance(volume, dict):
-        return '--mount ' + ','.join(list(map(get_volume_dict_pairs_to_str(args), volume.items())))
+        return ['--mount', ','.join(list(map(get_volume_dict_pairs_to_str(args), volume.items())))]
     return null
 
 def env_file_to_str_lambda(args, env_file):
     if env_file.startswith('~'):
         path = PosixPath(str(env_file)).expanduser()
-        return '--env-file ' + str(os.path.normpath(path.absolute()))
+        return ['--env-file', str(os.path.normpath(path.absolute()))]
     if env_file.startswith('/') == False:
         dirname = os.path.dirname(args.composefile)
         path = PosixPath(dirname, str(env_file))
-        return '--env-file ' + str(os.path.normpath(path.absolute()))
-    return '--env-file ' + env_file
+        return ['--env-file', str(os.path.normpath(path.absolute()))]
+    return ['--env-file', env_file]
 
 def get_volume_to_str_lambda(args):
     return lambda x: volume_to_str_lambda(args, x)
 
 def get_env_file_to_str_lambda(args):
     return lambda x: env_file_to_str_lambda(args, x)
+
+flatten = lambda l: [item for sublist in l for item in sublist]
 
 '''
 Convert time to seconds for timeout
@@ -161,9 +163,8 @@ def main(args):
     label_list = itertools.chain.from_iterable(zip(itertools.repeat('-l', len(svc_labels)), svc_labels))
     port_list = itertools.chain.from_iterable(zip(itertools.repeat('-p', len(svc_ports)), svc_ports))
 
-    # env_file_list = itertools.chain.from_iterable(zip(itertools.repeat('--env-file', len(svc_env_file)), svc_env_file))
-    env_file_list = list(map(get_env_file_to_str_lambda(args), svc_env_file))
-    volume_list = list(map(get_volume_to_str_lambda(args), svc_volumes_raw))
+    env_file_list = flatten(list(map(get_env_file_to_str_lambda(args), svc_env_file)))
+    volume_list = flatten(list(map(get_volume_to_str_lambda(args), svc_volumes_raw)))
 
     # build a command by exending/appending to an array
     cmd = ['telepresence']
@@ -211,15 +212,18 @@ def main(args):
     if len(svc_entrypoint_split) > 1:
         cmd.extend(svc_entrypoint_split[1:])
 
-    # subprocess.run(cmd)
     finalCmd = ' '.join(cmd)
-    print('Docker command:\n' + finalCmd)
+    if args.run:
+        subprocess.run(cmd)
+    else:
+        print('Command:\n' + finalCmd)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('-s', '--service', help='Service name to transform', required=True)
     parser.add_argument('-c', '--context', help='Kube context', required=True)
     parser.add_argument('-S', '--swap', help='Should we replace the deployment?', default=False, action='store_true')
+    parser.add_argument('-R', '--run', help='Run the command instead of printing?', default=False, action='store_true')
     parser.add_argument('composefile', help='Path to docker-compose.yaml')
     args = parser.parse_args()
     main(args)

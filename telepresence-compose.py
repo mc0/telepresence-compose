@@ -171,10 +171,11 @@ def main(args):
     cmd.extend(['--method', 'container'])
     cmd.extend(['--context', args.context])
 
+    deploy = args.deployment or args.service
     if args.swap:
-        cmd.extend(['--swap-deployment', args.service])
+        cmd.extend(['--swap-deployment', deploy])
     else:
-        cmd.extend(['--new-deployment', 'tele-' + args.service])
+        cmd.extend(['--new-deployment', 'tele-' + deploy])
 
     # TODO: this needs to also incorporate any ports specified
     cmd.extend(expose_list)
@@ -221,6 +222,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('-s', '--service', help='Service name to transform', required=True)
+    parser.add_argument('-d', '--deployment', help='Deployment to swap/run as in Kubernetes')
     parser.add_argument('-c', '--context', help='Kube context', required=True)
     parser.add_argument('-S', '--swap', help='Should we replace the deployment?', default=False, action='store_true')
     parser.add_argument('-R', '--run', help='Run the command instead of printing?', default=False, action='store_true')
